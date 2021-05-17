@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
@@ -13,22 +14,27 @@ import java.util.stream.Collectors;
 public class GetWeatherTask extends TimerTask
 {
 	private final LinkedBlockingQueue<String> waitingJsonMessages;
-	private final String location;
+	private final List<String> locations;
 
-	public GetWeatherTask(LinkedBlockingQueue<String> waitingJsonMessages, String location)
+	public GetWeatherTask(LinkedBlockingQueue<String> waitingJsonMessages, List<String> locations)
 	{
-
 		this.waitingJsonMessages = waitingJsonMessages;
-		this.location = location;
+		this.locations = locations;
 	}
 
 	@Override
 	public void run()
 	{
-		new Thread(this::getWeatherForLocation).start();
+		synchronized (locations)
+		{
+			for (String location : locations)
+			{
+				new Thread(() -> getWeatherForLocation(location)).start();
+			}
+		}
 	}
 
-	private void getWeatherForLocation()
+	private void getWeatherForLocation(String location)
 	{
 		try
 		{
@@ -36,7 +42,6 @@ public class GetWeatherTask extends TimerTask
 			HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
 
 			String resp = new BufferedReader(new InputStreamReader(urlConnection.getInputStream(), StandardCharsets.UTF_8)).lines().collect(Collectors.joining());
-			System.out.println("Api returned:" + resp);
 
 			waitingJsonMessages.put(resp);
 		} catch (IOException | InterruptedException e)
