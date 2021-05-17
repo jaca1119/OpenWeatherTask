@@ -8,4 +8,7 @@ public class MainTemp
 	public double temp_max;
 	public int pressure;
 	public int humidity;
+	public int sea_level;
+	public int grnd_level;
+
 }
